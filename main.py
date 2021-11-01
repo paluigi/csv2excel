@@ -3,7 +3,7 @@ import platform
 import pandas as pd
 import PySimpleGUI as sg
 # Logo need to be implemented
-#from logo.logo import get_logo
+#from logo import get_logo
 
 # Find the platform and setup environment
 # Not yet implemented
@@ -54,6 +54,8 @@ quotechars = [
     {"type": 'Double Quotes (")', "sym": '"'},
 ]
 
+headers = [{"type": "First line", "sym": 0}, {"type": "None", "sym": None}]
+
 encodings = [
     {"type": "UTF-8", "sym": "utf-8"},
     {"type": "UTF-16", "sym": "utf-16"},
@@ -71,8 +73,8 @@ RESULTS_1 = "All files were successfully converted"
 RESULTS_2 = "The following files were not converted due to formatting errors:\n{}\n\nPlease check the conversion parameters."
 
 # Define Menu and versioning
-VERSION = "Version 0.1 - 2021-10-11"
-CONTACTS = "For support and inquiries, please visit https://gg8.eu/ or send an email to mail@provider.com"
+VERSION = "Version 0.2 - 2021-11-01"
+CONTACTS = "For support and inquiries, please visit https://randomds.com/ and use the contact form"
 MENU = [["&File", ["&Info", "&Exit"]]]
 
 # Set appearence settings
@@ -84,8 +86,8 @@ sg.theme_text_element_background_color(color="gray80")
 font = ("Arial, 14")
 sg.set_options(font=font)
 # Logo needs to be implemented
-# LOGO = get_logo()
-# sg.set_global_icon(LOGO)
+#LOGO = get_logo()
+#sg.set_global_icon(LOGO)
 
 
 def set_display_files_list(files_list):
@@ -136,6 +138,14 @@ def get_parameters(values, conversion_dict):
         ),
         None,
     )
+    header_dict = next(
+        (
+            item
+            for item in headers
+            if item.get("type", "NA") == values.get("header")[0]
+        ),
+        None,
+    )
     encoding_dict = next(
         (
             item
@@ -147,6 +157,7 @@ def get_parameters(values, conversion_dict):
     params["separator"] = separator_dict.get("sym")
     params["decimal"] = decimal_dict.get("sym")
     params["quotechar"] = quotechar_dict.get("sym")
+    params["header"] = header_dict.get("sym")
     params["encoding"] = encoding_dict.get("sym")
     return params
 
@@ -170,6 +181,7 @@ def convert_file(f, destination_folder, params):
                 sep=params.get("separator"),
                 decimal=params.get("decimal"),
                 quotechar=params.get("quotechar"),
+                header=params.get("header"),
                 encoding=params.get("encoding"),
             )
             temp_df.to_excel(dest_path)
@@ -256,6 +268,20 @@ def main_window():
                 auto_size_text=True,
                 no_scrollbar=True,
                 key="quotechar",
+            )
+        ],
+        [sg.T("Select CSV header (only for CSV to Excel)")],
+        [
+            sg.Listbox(
+                values=[head.get("type", "NA") for head in headers],
+                default_values=[
+                    headers[0].get("type", "NA"),
+                ],
+                size=(30, 2),
+                select_mode="LISTBOX_SELECT_MODE_SINGLE",
+                auto_size_text=True,
+                no_scrollbar=True,
+                key="header",
             )
         ],
         [sg.T("Select CSV encoding")],
@@ -350,7 +376,7 @@ while True:
                     # Else flag the failed files
                     else:
                         failed_files = [
-                            f for f, k in zip(files_list, results_list) if k == False
+                            f for f, k in zip(files_list, results_list) if k is False
                         ]
                         failed_files_string = "\n".join(failed_files)
                         sg.popup(RESULTS_0, RESULTS_2.format(failed_files_string))
